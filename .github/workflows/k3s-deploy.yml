@@ -1,0 +1,62 @@
+name: K3s Model Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'notion_/**'
+      - 'k8s/**'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/notion-search:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/notion-search:latest
+          cache-to: type=inline
+
+      - name: Set up K3s
+        uses: debianmaster/actions-k3s@master
+        with:
+          version: 'v1.25.6+k3s1'
+
+      - name: Update Kubernetes manifests
+        run: |
+          # Update the image tag in the deployment manifest
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/notion-search:${{ github.sha }}|g" k8s/deployment.yaml
+
+      - name: Deploy to K3s
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml
+          
+      - name: Wait for deployment
+        run: |
+          kubectl wait --for=condition=available --timeout=300s deployment/notion-search -n notion-search
+          
+      - name: Run post-deployment tests
+        run: |
+          # Add integration tests here
+          curl -s http://localhost/health | grep "ok" 

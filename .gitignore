@@ -1,1 +1,94 @@
 .env
+
+
+```bash
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+notion_py310_env/
+venv/
+ENV/
+.env.local
+.env.*
+
+# Qdrant
+qdrant_storage/
+qdrant_data/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+logs/
+log/
+*.log.*
+npm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*~
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local development
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# API keys and secrets
+*.pem
+*.key
+*.crt
+```

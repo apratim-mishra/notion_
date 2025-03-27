@@ -1,77 +1,92 @@
-# Notion LLM Search
+# Notion Search with RAG
 
-A local search system for Notion pages using LLMs and vector search, with basic MLOps practices for personal projects.
+A powerful semantic search system for Notion pages using RAG (Retrieval Augmented Generation) and vector search. This system allows you to search through your Notion content using natural language and get AI-generated responses based on your documents.
 
 ## Features
-- Fetch content from Notion databases
-- Generate embeddings using OpenAI's models
-- Store and search embeddings using Qdrant
-- Simple CLI for indexing and searching
 
-## Setup
+- 🔍 **Semantic Search**: Find relevant content using meaning, not just keywords
+- 🤖 **RAG Integration**: Get AI-generated answers based on your Notion content
+- 📚 **Chunk Management**: Smart document splitting for better context preservation
+- 🔄 **Real-time Updates**: Index new Notion content as you add it
+- 🌐 **REST API**: Easy-to-use endpoints for search and RAG queries
+- 📊 **Vector Storage**: Efficient storage and retrieval using Qdrant
+- 🔐 **Environment Management**: Secure API key handling
 
-### Prerequisites
-- Python 3.8 or higher
-- Qdrant running locally (see installation instructions below)
+## Prerequisites
+
+- Python 3.10 or higher
 - Notion API key
 - OpenAI API key
+- Qdrant (local or cloud)
 
-### Installation
+## Installation
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/notion-llm-search.git
-   cd notion-llm-search
-   ```
-
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-3. Set up environment variables:
-   - Copy the `.env.example` file to `.env`
-   - Fill in your API keys and database ID
-
-### Setting up Qdrant
-
-Install Qdrant using Docker:
-```
-docker run -p 6333:6333 -p 6334:6334 -v $(pwd)/qdrant_storage:/qdrant/storage qdrant/qdrant
+```bash
+git clone https://github.com/apratim-mishra/notion_.git
+cd notion_
 ```
 
-### Setting up Notion Integration
+2. Create a virtual environment:
+```bash
+python -m venv notion_py310_env
+source notion_py310_env/bin/activate  # On Windows: notion_py310_env\Scripts\activate
+```
 
-1. Visit [Notion's My Integrations page](https://www.notion.so/my-integrations)
-2. Click "New Integration" and name it (e.g., "Local LLM Search")
-3. Select your workspace and submit to get an API key
-4. Copy the API key to your `.env` file
-5. Share the integration with your Notion pages:
-   - Open the page or database
-   - Click "Share" in the top-right corner
-   - Click "Invite"
-   - Select your integration and grant at least read access
-6. Get your database ID from the URL (e.g., https://www.notion.so/your-workspace/YOUR_DATABASE_ID)
-   - Copy the database ID to your `.env` file
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up environment variables in `.env`:
+```env
+NOTION_API_KEY=your_notion_api_key
+NOTION_DATABASE_ID=your_database_id
+OPENAI_API_KEY=your_openai_api_key
+QDRANT_URL=your_qdrant_url  # Optional for cloud Qdrant
+QDRANT_API_KEY=your_qdrant_api_key  # Optional for cloud Qdrant
+```
 
 ## Usage
 
-### Indexing Notion Content
-
-```
+### 1. Index Your Notion Content
+```bash
 python main.py --index
 ```
 
-### Searching
+### 2. Start the API Server
+```bash
+python api.py
+```
 
-```
-python main.py --search "your search query"
+### 3. Search Your Content
+
+Using the API:
+```bash
+# Simple search
+curl http://localhost:8000/search/your-query
+
+# RAG query
+curl http://localhost:8000/rag/your-question
 ```
 
-Limit the number of results:
+Using the CLI:
+```bash
+# Simple search
+python main.py --search "what is machine learning"
+
+# RAG query
+python main.py --rag "explain machine learning concepts"
 ```
-python main.py --search "your search query" --limit 10
-```
+
+## API Endpoints
+
+- `GET /`: API information and available endpoints
+- `GET /health`: Health check endpoint
+- `GET /search/<query>`: Search endpoint for finding relevant content
+- `GET /rag/<query>`: RAG endpoint for AI-generated answers
+
+## Project Structure
 
 ## MLOps Features
 
@@ -84,3 +99,90 @@ This project includes:
 ## License
 
 MIT
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NOTION_API_KEY` | Your Notion integration token | Yes |
+| `NOTION_DATABASE_ID` | ID of your Notion database | Yes |
+| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
+| `QDRANT_URL` | Qdrant cloud URL | No |
+| `QDRANT_API_KEY` | Qdrant cloud API key | No |
+
+## Package Versions
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Indexing Errors**: 
+   - Ensure your Notion API key has proper access
+   - Check your database ID is correct
+   - Verify OpenAI API key has sufficient credits
+
+2. **Search Returns Empty**: 
+   - Verify indexing completed successfully
+   - Check qdrant_storage directory exists
+   - Ensure vectors were properly stored
+
+3. **RAG Not Working**: 
+   - Check OpenAI API key and rate limits
+   - Verify embeddings were generated correctly
+   - Ensure proper Python version (3.10 recommended)
+
+4. **API Connection Issues**:
+   - Verify Flask server is running
+   - Check port 8000 is available
+   - Ensure all dependencies are installed
+
+### Version Compatibility
+
+- Python: 3.10 recommended
+- Qdrant client: 1.6.0
+- OpenAI: 1.3.7
+- Flask: 2.3.3
+
+## License
+
+MIT License
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+# .gitignore
+
+# Docker specific
+.docker/
+docker-compose.override.yml
+*.env
+.dockerignore
+docker-compose.*.yml
+docker-compose.yml.local
+docker-compose.override.yml
+
+# Docker volumes and data
+docker/data/
+docker/volumes/
+docker_data/
+docker_volumes/
+
+# Docker build context
+.docker-build-context/
+
+# Docker logs
+docker/logs/
+
+# Docker credentials
+.docker/config.json
+.docker/daemon.json
+
+# Container runtime data
+qdrant_storage/
+notion_storage/
+vector_storage/

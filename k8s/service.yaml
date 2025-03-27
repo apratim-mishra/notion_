@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notion-search
+  namespace: notion-search
+spec:
+  selector:
+    app: notion-search
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP 

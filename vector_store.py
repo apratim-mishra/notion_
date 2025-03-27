@@ -1,66 +1,96 @@
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
+import os
+from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
 import logging
-
+import uuid
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
+
 class VectorStore:
-    def __init__(self, collection_name="notion_content", host="localhost", port=6333):
-        """Initialize the vector store with Qdrant."""
-        self.collection_name = collection_name
-        self.dimension = 1536  # Dimension of text-embedding-ada-002
+    def __init__(self):
+        """Initialize the vector store client."""
+        # Check if QDRANT_URL is provided in environment variables
+        qdrant_url = os.getenv("QDRANT_URL")
         
-        try:
-            self.client = QdrantClient(host=host, port=port)
-            logger.info(f"Connected to Qdrant at {host}:{port}")
-        except Exception as e:
-            logger.error(f"Error connecting to Qdrant: {e}")
-            raise
+        if qdrant_url:
+            # Use cloud-hosted Qdrant
+            api_key = os.getenv("QDRANT_API_KEY")
+            if not api_key:
+                raise ValueError("Qdrant API key not found in environment variables")
+            
+            self.client = QdrantClient(url=qdrant_url, api_key=api_key)
+            logger.info(f"Connected to cloud Qdrant at {qdrant_url}")
+        else:
+            # Use local Qdrant
+            self.client = QdrantClient(path="./qdrant_storage")
+            logger.info("Connected to local Qdrant storage")
         
-        # Create collection if it doesn't exist
-        self._create_collection_if_not_exists()
+        self.collection_name = "notion_chunks"
+        self.vector_size = 1536  # Size of text-embedding-3-small embeddings
     
-    def _create_collection_if_not_exists(self):
-        """Create the collection in Qdrant if it doesn't already exist."""
+    def create_collection(self):
+        """Create the vector collection if it doesn't exist."""
         collections = self.client.get_collections().collections
         collection_names = [collection.name for collection in collections]
         
         if self.collection_name not in collection_names:
-            try:
-                self.client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=models.VectorParams(
-                        size=self.dimension,
-                        distance=models.Distance.COSINE
-                    )
+            # Use the OLD format for Qdrant 1.6.0
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=models.VectorParams(
+                    size=self.vector_size,
+                    distance=models.Distance.COSINE
                 )
-                logger.info(f"Created collection {self.collection_name}")
-            except Exception as e:
-                logger.error(f"Error creating collection: {e}")
-                raise
+            )
+            logger.info(f"Created collection: {self.collection_name}")
+        else:
+            logger.info(f"Collection {self.collection_name} already exists")
     
-    def index_documents(self, documents):
-        """Index documents (id, embedding, payload) into Qdrant."""
+    def store_embeddings(self, documents: List[Dict[str, Any]]):
+        """Store document embeddings in the vector store."""
+        # First recreate collection to clear existing data
         try:
+            self.client.delete_collection(collection_name=self.collection_name)
+            logger.info(f"Deleted existing collection: {self.collection_name}")
+        except Exception as e:
+            logger.warning(f"Error deleting collection (may not exist yet): {str(e)}")
+        
+        self.create_collection()
+        
+        # Prepare points for the vector store
+        points = []
+        for doc in documents:
+            # Convert document ID to a valid UUID
+            uuid_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"notion-chunk-{doc['id']}"))
+            
+            # Use the OLD format for Qdrant 1.6.0
+            point = models.PointStruct(
+                id=uuid_id,
+                vector=doc["embedding"],  # Use unnamed vector format
+                payload={
+                    "chunk_id": doc["id"],
+                    "page_idx": doc["page_idx"],
+                    "page_id": doc["page_id"],
+                    "title": doc["title"],
+                    "chunk_idx": doc["chunk_idx"],
+                    "chunk": doc["chunk"],
+                    "total_chunks": doc["total_chunks"]
+                }
+            )
+            
+            points.append(point)
+        
+        # Store points in batches
+        batch_size = 100
+        for i in range(0, len(points), batch_size):
+            batch = points[i:i+batch_size]
             self.client.upsert(
                 collection_name=self.collection_name,
-                points=documents
+                points=batch,
+                wait=True
             )
-            logger.info(f"Indexed {len(documents)} documents")
-        except Exception as e:
-            logger.error(f"Error indexing documents: {e}")
-            raise
-    
-    def search(self, query_vector, limit=5):
-        """Search for similar documents using a query vector."""
-        try:
-            search_result = self.client.search(
-                collection_name=self.collection_name,
-                query_vector=query_vector,
-                limit=limit
-            )
-            logger.info(f"Found {len(search_result)} search results")
-            return search_result
-        except Exception as e:
-            logger.error(f"Error searching: {e}")
-            return []
+            logger.info(f"Stored batch of {len(batch)} document chunks")

@@ -1,0 +1,64 @@
+name: Monitor Model Drift
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly
+  workflow_dispatch:
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install scikit-learn evidently
+          
+      - name: Download reference dataset
+        run: |
+          # Download your reference dataset or use one from your repo
+          cp data/reference_embeddings.json /tmp/reference.json
+          
+      - name: Generate current embeddings
+        run: |
+          python monitoring/generate_embeddings_sample.py --output /tmp/current.json
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          
+      - name: Detect drift
+        run: |
+          python monitoring/detect_drift.py \
+            --reference /tmp/reference.json \
+            --current /tmp/current.json \
+            --report drift_report.html
+            
+      - name: Upload drift report
+        uses: actions/upload-artifact@v3
+        with:
+          name: drift-report
+          path: drift_report.html
+          
+      - name: Send alert on drift
+        if: ${{ failure() }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[ALERT] Model Drift Detected"
+          body: "Drift has been detected in the embedding model. Please check the attached report."
+          to: your-email@example.com
+          from: GitHub Actions
+          attachments: drift_report.html 
