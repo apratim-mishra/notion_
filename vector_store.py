@@ -5,6 +5,8 @@ from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 import logging
 import uuid
+import tempfile
+
 logger = logging.getLogger(__name__)
 
 # Load environment variables
@@ -25,9 +27,13 @@ class VectorStore:
             self.client = QdrantClient(url=qdrant_url, api_key=api_key)
             logger.info(f"Connected to cloud Qdrant at {qdrant_url}")
         else:
-            # Use local Qdrant
-            self.client = QdrantClient(path="./qdrant_storage")
-            logger.info("Connected to local Qdrant storage")
+            # Use local Qdrant - with tmpdir for GitHub Actions compatibility
+            temp_dir = tempfile.gettempdir()
+            storage_path = os.path.join(temp_dir, "qdrant_storage")
+            os.makedirs(storage_path, exist_ok=True)
+            
+            self.client = QdrantClient(path=storage_path)
+            logger.info(f"Connected to local Qdrant storage at {storage_path}")
         
         self.collection_name = "notion_chunks"
         self.vector_size = 1536  # Size of text-embedding-3-small embeddings

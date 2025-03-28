@@ -5,6 +5,8 @@ from notion_client import Client
 from notion_client.errors import APIResponseError
 import logging
 import re
+import time
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,20 @@ class NotionConnector:
         
         self.client = Client(auth=self.api_key)
     
+    def with_retry(self, operation, max_retries=3, *args, **kwargs):
+        """Execute an operation with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                return operation(*args, **kwargs)
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) + random.random()  # Exponential backoff with jitter
+                    logger.warning(f"Operation failed, retrying in {wait_time:.2f}s: {str(e)}")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"All operation attempts failed: {str(e)}")
+                    raise
+    
     def fetch_database_content(self) -> List[dict]:
         """Fetch all pages from the specified Notion database.
         
@@ -49,7 +65,7 @@ class NotionConnector:
                 query_params["start_cursor"] = next_cursor
             
             try:
-                response = self.client.databases.query(**query_params)
+                response = self.with_retry(self.client.databases.query, 3, **query_params)
                 results.extend(response["results"])
                 has_more = response["has_more"]
                 next_cursor = response.get("next_cursor")
@@ -82,7 +98,7 @@ class NotionConnector:
                 if next_cursor:
                     query_params["start_cursor"] = next_cursor
                 
-                response = self.client.blocks.children.list(page_id, **query_params)
+                response = self.with_retry(self.client.blocks.children.list, 3, page_id, **query_params)
                 all_blocks.extend(response["results"])
                 has_more = response["has_more"]
                 next_cursor = response.get("next_cursor")
@@ -157,7 +173,7 @@ class NotionConnector:
             
         return "\n".join(content)
     
-    def split_into_chunks(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+    def split_into_chunks(self, text: str, chunk_size: int = 2048, overlap: int = 128) -> List[str]:
         """Split text into overlapping chunks.
         
         Args:
