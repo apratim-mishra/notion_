@@ -1,4 +1,4 @@
-name: Deploy to Kubernetes
+name: Build Only (K8s Deploy Disabled)
 
 on:
   push:
@@ -6,34 +6,35 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-          
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
           docker build -t notion-app:${{ github.sha }} .
-          # You would typically push to a container registry here
+          echo "Docker image built successfully"
           
-      - name: Deploy to Kubernetes
-        run: |
-          # Create K8s namespace if it doesn't exist
-          kubectl apply -f k8s/namespace.yaml
-          
-          # Update image tag in deployment file
-          sed -i "s|image: notion-app:.*|image: notion-app:${{ github.sha }}|" k8s/deployment.yaml
-          
-          # Apply K8s manifests
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/ingress.yaml
+      # Kubernetes deployment steps are commented out until cluster is ready
+      # - name: Set up kubectl
+      #   uses: azure/setup-kubectl@v3
+      #   
+      # - name: Set up kubeconfig
+      #   run: |
+      #     mkdir -p $HOME/.kube
+      #     echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+      #     chmod 600 $HOME/.kube/config
+      #     
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     # Create K8s namespace if it doesn't exist
+      #     kubectl apply -f k8s/namespace.yaml
+      #     
+      #     # Update image tag in deployment file
+      #     sed -i "s|image: notion-app:.*|image: notion-app:${{ github.sha }}|" k8s/deployment.yaml
+      #     
+      #     # Apply K8s manifests
+      #     kubectl apply -f k8s/deployment.yaml
+      #     kubectl apply -f k8s/service.yaml
+      #     kubectl apply -f k8s/ingress.yaml
