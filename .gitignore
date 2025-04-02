@@ -44,3 +44,4 @@ docker-compose.override.yml
 __pycache__/
 notion_env/
 notion_env_310/
+*.bak
