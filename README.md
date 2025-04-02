@@ -155,32 +155,7 @@ MIT License
 4. Push to the branch
 5. Create a Pull Request
 
-# .gitignore
 
-# Docker specific
-.docker/
-docker-compose.override.yml
-*.env
-.dockerignore
-docker-compose.*.yml
-docker-compose.yml.local
-docker-compose.override.yml
-
-# Docker volumes and data
-docker/data/
-docker/volumes/
-docker_data/
-docker_volumes/
-
-# Docker build context
-.docker-build-context/
-
-# Docker logs
-docker/logs/
-
-# Docker credentials
-.docker/config.json
-.docker/daemon.json
 
 # Container runtime data
 qdrant_storage/
