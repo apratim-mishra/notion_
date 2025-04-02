@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notion-app
+  namespace: notion-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notion-app
+  template:
+    metadata:
+      labels:
+        app: notion-app
+    spec:
+      containers:
+      - name: notion-app
+        image: notion-app:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"

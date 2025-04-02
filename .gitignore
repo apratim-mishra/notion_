@@ -1,80 +1,28 @@
-.env
-
-
-```bash
-# Python
-
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
+# Virtual environments
+notion_env/
 notion_py310_env/
 venv/
-ENV/
-.env.local
-.env.*
+env/
 
-# Qdrant
-qdrant_storage/
-qdrant_data/
-
-# Environment variables
+# Local development settings
 .env
 .env.local
-.env.*.local
-.env.development
-.env.production
 
-# IDE
+# IDE files
 .idea/
 .vscode/
-*.swp
-*.swo
-.vscode/
-*.sublime-workspace
-*.sublime-project
 
 # Logs
-*.log
 logs/
-log/
-*.log.*
-npm-debug.log*
+*.log
 
-# System
-.DS_Store
-Thumbs.db
-*.bak
-*.tmp
-*~
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
+# Qdrant storage
+qdrant_storage/
 
 # Jupyter Notebook
 .ipynb_checkpoints
