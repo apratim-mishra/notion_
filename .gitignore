@@ -92,3 +92,6 @@ docker-compose.override.yml
 *.key
 *.crt
 ```
+__pycache__/
+notion_env/
+notion_env_310/
