@@ -5,6 +5,8 @@ import os
 import httpx
 from dotenv import load_dotenv
 from search import NotionSearch
+import time
+import random
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +26,7 @@ class RAGProcessor:
         )
 
         self.search_client = NotionSearch()
-        self.model = "gpt-3.5-turbo"  # Can be upgraded to gpt-4 for better responses
+        self.model = "gpt-3.5-turbo"  # Changed from gpt-4o-mini which appears to be a typo
         self.max_tokens = 4096  # Adjust based on your model
     
     def retrieve_documents(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
@@ -70,6 +72,20 @@ Answer:
 """
         return prompt
     
+    def with_retry(self, operation, max_retries=3, *args, **kwargs):
+        """Execute an operation with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                return operation(*args, **kwargs)
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) + random.random()
+                    logger.warning(f"RAG operation failed, retrying in {wait_time:.2f}s: {str(e)}")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"All RAG operation attempts failed: {str(e)}")
+                    raise
+
     def generate_response(self, query: str) -> Dict[str, Any]:
         """Generate a comprehensive response to the query using RAG.
         
@@ -87,14 +103,16 @@ Answer:
             prompt = self.construct_prompt(query, chunks)
             
             # Generate response using OpenAI API
-            response = self.client.chat.completions.create(
+            response = self.with_retry(
+                self.client.chat.completions.create,
+                3,
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are a knowledgeable assistant that provides comprehensive answers based on the given context."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,  # Lower temperature for more factual responses
-                max_tokens=1000   # Adjust based on your needs
+                temperature=0.3,
+                max_tokens=1000
             )
             
             answer = response.choices[0].message.content

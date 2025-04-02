@@ -5,10 +5,10 @@ from embeddings import EmbeddingGenerator
 from vector_store import VectorStore
 from search import NotionSearch
 from rag import RAGProcessor
-from monitoring import setup_logging
+from github_logging import setup_github_logging
 
 # Setup logging
-setup_logging()
+setup_github_logging()
 logger = logging.getLogger(__name__)
 
 def index_notion_content():
@@ -146,9 +146,20 @@ if __name__ == "__main__":
     parser.add_argument("--test", action="store_true", help="Run a test query")
     parser.add_argument("--limit", type=int, default=5, help="Maximum number of search results")
     parser.add_argument("--no-group", action="store_true", help="Don't group search results by page")
+    parser.add_argument("--github", action="store_true", help="Run in GitHub Actions mode")
     
     args = parser.parse_args()
     
+    if args.github:
+        # GitHub Actions specific run
+        try:
+            success = index_notion_content()
+            if not success:
+                sys.exit(1)  # Exit with error code if indexing failed
+        except Exception as e:
+            logger.error(f"Fatal error in GitHub Actions mode: {str(e)}")
+            sys.exit(1)
+            
     if args.index:
         index_notion_content()
     
